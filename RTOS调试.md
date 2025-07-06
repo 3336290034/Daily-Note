@@ -50,3 +50,5 @@
 - 硬件调试器是一个硬件设备，也叫“硬件仿真器”，作用是接收调试命令来直接控制芯片，并返回调试数据
   - 市面上常见的硬件调试器：JLink，STLink，CMSIS-DAP，JLink-OB
 - <https://discuss.em-ide.com/blog/67-cortex-debug>：里面关于launch.json的属性介绍的很详细
+
+5，GDB：GNU Debugger
