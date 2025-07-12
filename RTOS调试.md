@@ -52,3 +52,5 @@
 - <https://discuss.em-ide.com/blog/67-cortex-debug>：里面关于launch.json的属性介绍的很详细
 
 5，GDB：GNU Debugger
+
+6，调试RTOS时，断点打在任务相关的函数API位置，点击F5继续运行，执行对应操作，程序会在对应位置停下来
