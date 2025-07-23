@@ -64,10 +64,10 @@
 - EOP（End of Packet）
 
 - 数据传输的 完整的 流程：事务（ 一般是 令牌包-数据包-握手包 组成的，最后的握手包是 Device->Host ）
-  - 事务由包Packet组成
+  - 事务：由包Packet组成
   - 令牌包：也叫 token phase，令牌阶段
   - 数据包：也叫 data phase，数据阶段
-  - 握手包：handshake phase，握手阶段
+  - 握手包：handshake phase，握手阶段 （最短的，没有Data和CRC的）
 
 - 包的组成叫做域field：SOP域、SYNC域、PID域、Data域、CRC域、EOP域......
 - 域由一位一位的bit数据组成
@@ -87,15 +87,50 @@
 
 8，USB4种传输：传输就是详细的规定了数据的处理流程！
 
-- 批量传输：Bulk Transaction
-- 中断传输：实际上是假中断
-- 实时传输
-- 控制传输
-  - 多个事务实现（only u）
+- 批量传输：Bulk Transaction，即批量事务，一次或多次的重复
+  - ![alt text](USB批量传输.png)
+- 中断传输：（实际上是假中断），Host每隔一定时间必定会去访问设备
+- 实时传输：不在乎数据的完全可靠性，要保证实时性优先；省去了握手阶段，只有命令和数据阶段
+- 控制传输：命令阶段不包含读写方向；“设置事务 + 批量事务”（多个过程：Setup Stage、Data Stage[不一定都有，比如设置地址时就没有该阶段]、Status Stage）
+  - 多个事务实现（only u），和上面各个Stage对应的是：建立事务、一个/多个批量事务、一个批量事务
+  - 重点是建立事务中的数据包格式，是怎么确定读和写的？是怎么确定要读和要写的内容？
+  - 最后的状态过程，要求 Data_len = 0 byte（表示Completed），只是用来报告状态
+  - 状态过程的状态报告总是由 Device -> Host
+  - ![alt text](USB控制传输.png)
+
+9，USB设备描述符
+
+- 设想场景：将一个U盘或者摄像头插进PC，我们的PC马上可以识别出它是U盘或者是摄像头，且工作在什么状态下，为什么呢？
+  - 因为这些硬件本身，存储有这些设备的信息
+  - 这些信息我们称之为描述符
+  - “符”即以一种固定的格式
+
+- 同一个设备Device，可以有一个或多个配置configuration，实现不同的功能，但不可以同时工作
+  - 设备Device：对应硬件/实体
+  - 配置Configuration
+- 在某一个配置下，可以有一个或多个接口Interface（只是一个概念），可以同时工作，实现不同的功能
+  - 接口Interface：对应逻辑上的设备/功能
+- 在每一个接口下，可以有多个端点Endpoint，其中端点0一般是用来初始化USB设备的
+  - 端点Endpoint：是数据传输的源/目的
+
+- ![alt text](USB设备描述符.png)
+- 有设备描述符、配置描述符、接口描述符、端点描述符等等等等...，每种描述符都有自己的格式
+
+10，设备的枚举过程
+
+- 是 主机（如电脑）识别并初始化新连接 USB 设备的核心流程，目的是让主机获取设备信息（如类型、功能）、分配唯一地址，并配置设备进入工作状态
+- 处于Default工作状态下的USB设备的地址是0，Host以该地址与Device进行通信，后续再分配地址
+- Attached -> Powered -> Default -> Address -> Configured
+- 当一个设备被插入到Host中时
+  - . Get Device Descriptor
+  - . Set New Address
+  - . Get Device Descriptor again
+  - . Get Configuration Descriptor
+  - . Set Configuration
 
 ## 引出一个问题如下
 
-7，使用单根数据线实现多位数据的传输
+11，使用单根数据线实现多位数据的传输
 
 - 本来一根线上只能传输0/1，这样看只能发送1位的数据...
 
