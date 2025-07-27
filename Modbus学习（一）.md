@@ -52,4 +52,5 @@ int ux_device_cdc_acm_getchar(uint8_t *data, uint32_t timeout)
 }
 
 这里的参数应该时 data，而不是 &data
+
 ```
