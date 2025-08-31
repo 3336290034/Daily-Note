@@ -116,3 +116,50 @@ mb_mapping->tab_registers 写成了 &mb_mapping->nb_registers
 1，二进制信号量：在被获取后会自动复位，不需要手动释放，           互斥量（Mutex）：必须手动释放 - 获取后必须对应释放
 
 - ![alt text](补充Mutex和BinarySemaphore.png)
+
+## 点表映射操作传感器的原理、总结向
+
+- PC端访问的，实际上只是H5的寄存器，master的
+- 从 `Red_addr_master` 到 `Reg_addr_slave`，这中间必定会有一个映射关系，即映射表
+- 映射表中包含的参数；
+  - 中控的寄存器（或者说，中控这个`大寄存器`）
+  - 使用中控的哪一个通道？
+  - 传感器的设备地址
+  - 对应设备地址下的寄存器
+  - 该寄存器的类型，DO？DI？AI？AO？
+- 使用结构体来表示一个点的映射关系
+
+```c
+typedef struct PointMap {
+    char reg_type[5];      // 寄存器类型
+    uint16_t reg_addr_master;// 主控的寄存器地址
+    uint16_t channel;       // 通道号 0-主控本身  1-通过CH1访问  2-通过CH2访问
+    uint16_t device_addr;   // 传感器的设备地址
+    uint16_t reg_addr_slave; // 传感器的寄存器地址
+} PointMap, *pPointMap;
+```
+
+- 用户在上位机界面添加点的时候，后台程序就会创建这些映射表（后续QT开发的上位机）
+
+## 上位机如何发送这些点的映射关系？
+
+- 使用基于modbus_write_file_record实现的modbus_write_file功能
+- 当`file_no`是0时，表示发送的数据是点的结构体，即点的映射关系
+- 根据`write_file_record`的定义，msg[10]开始，每个数据都是上述PointMap结构体的内容（PC发送的）
+- 中控会见这些结构体memcpy到一个结构体数组里面
+
+## 中控如何处理这些点的映射关系？
+
+- 上位机主要就两个功能：
+  - 用户点击之后生成点的映射关系（lvgl代码部分）
+  - 发送点的映射关系到中控（上位机的眼里只有中控）
+- 在中控程序中：
+  - 存储点的映射关系
+  - 分配对应的资源（DO、DI、AI、AO这几类寄存器）
+  - 处理上位机的读写请求（只是操作DO、DI、AI、AO寄存器，不涉及后续的传感器）
+- 那么，谁来把这些数值发给具体的模块（具体的传感器），又是谁从具体的传感器得到数值来更新这些寄存器呢？
+  - 由 CH0_Task、CH1_Task、CH2_Task这几个任务来完成
+  - 以CH2_Task为例分析：
+    - CH_Task会遍历这些映射关系表
+    - 找到结构体（关系表）中 channel = 2的点
+    - 访问传感器
